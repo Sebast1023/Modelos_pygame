@@ -89,6 +89,7 @@ class SimpleCharacter(ICharacter):
 
         self.current_anim = "idle"
         self.frame_index = 0
+        self.dead_finished = False
 
     def get_rect(self):
         return pygame.Rect(int(self.x), int(self.y), self.w, self.h)
@@ -157,9 +158,12 @@ class SimpleCharacter(ICharacter):
             self.leg_phase *= (1 - min(1, dt * 8))
 
     def update(self, dt, keys):
-        self._physics(dt, keys)
+
+        # ===== elegir animación =====
         if self.hp <= 0:
-            self.current_anim = "dead"
+            if not self.dead_finished:
+                self.current_anim = "dead"
+            # no cambiar más después
         elif not self.on_ground:
             self.current_anim = "jump"
         elif abs(self.vx) > 1:
@@ -167,18 +171,32 @@ class SimpleCharacter(ICharacter):
         else:
             self.current_anim = "idle"
 
-        # avanzar animación
-        self.frame_index += dt * 10
-        if abs(self.vx) > 1 and self.on_ground:
-            self.frame_index += dt * 10
+        # ===== física SOLO si está vivo =====
+        if self.hp > 0:
+            self._physics(dt, keys)
         else:
-            self.frame_index = 0
+            self.vx = 0
+            self.vy = 0
+
+        # ===== animación =====
+        if self.current_anim == "dead":
+            if not self.dead_finished:
+                self.frame_index += dt * 10
+
+                if self.frame_index >= len(self.animations["dead"]):
+                    self.frame_index = len(self.animations["dead"]) - 1
+                    self.dead_finished = True
+        else:
+            self.frame_index += dt * 10
 
     def draw(self, surf):
         rect = self.get_rect()
-
         frames = self.animations[self.current_anim]
-        frame = frames[int(self.frame_index) % len(frames)]
+
+        if self.current_anim == "dead":
+            frame = frames[min(int(self.frame_index), len(frames) - 1)]
+        else:
+            frame = frames[int(self.frame_index) % len(frames)]
 
         if self.facing == -1:
             frame = pygame.transform.flip(frame, True, False)
@@ -429,6 +447,11 @@ def main():
         if character.get_state()["hp"] <= 0:
             banner = font.render("Game Over — press ESC to quit", True, RED)
             screen.blit(banner, (WIDTH // 2 - banner.get_width() // 2, 10))
+
+            # 🚫 congelar mundo (opcional pero recomendado)
+            pickups.clear()
+            hazards.clear()
+
             if keys[pygame.K_ESCAPE]:
                 running = False
 
