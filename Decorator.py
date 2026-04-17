@@ -134,7 +134,10 @@ class SimpleCharacter(ICharacter):
         self.x += self.vx * dt
 
         # clamp to screen
-        self.x = max(0, min(self.x, WIDTH - self.w))
+        #self.x = max(0, min(self.x, WIDTH - self.w))
+
+        # wrap around horizontally
+        self.x %= WIDTH
 
         # jumping / gravity
         if (keys[pygame.K_SPACE] or keys[pygame.K_w] or keys[pygame.K_UP]) and self.on_ground:
@@ -201,7 +204,11 @@ class SimpleCharacter(ICharacter):
         if self.facing == -1:
             frame = pygame.transform.flip(frame, True, False)
 
-        surf.blit(frame, rect)
+        surf.blit(frame, rect)        
+        
+    def reset_life(self):
+        self.hp = 3
+        self.dead_finished = False
 # ======== Decorator Base ========
 class CharacterDecorator(ICharacter):
     """Base class for all decorators; forwards to wrapped character."""
@@ -387,7 +394,7 @@ def main():
     # world
     pickups, hazards = spawn_level()
     character: ICharacter = SimpleCharacter(80, GROUND_Y - 64)
-
+    character_original = character  # keep original reference for resets
     score = 0
     running = True
 
@@ -431,11 +438,12 @@ def main():
         character = strip_expired_decorators(character)
 
         # Respawn world items occasionally (keep the playground alive)
-        if random.random() < 0.01 and len(pickups) < 7:
-            kind = random.choice(["speed", "jump", "shield"])
-            pickups.append(Pickup(random.randint(80, WIDTH - 80), kind))
-        if random.random() < 0.008 and len(hazards) < 6:
-            hazards.append(Hazard(random.randint(80, WIDTH - 80)))
+        if  character.get_state()["hp"] > 0:
+            if random.random() < 0.01 and len(pickups) < 7:
+                kind = random.choice(["speed", "jump", "shield"])
+                pickups.append(Pickup(random.randint(80, WIDTH - 80), kind))
+            if random.random() < 0.008 and len(hazards) < 6:
+                hazards.append(Hazard(random.randint(80, WIDTH - 80)))
 
         # ======== RENDER ========
         screen.blit(background, (0, 0))
@@ -459,7 +467,7 @@ def main():
 
         # Game over banner
         if character.get_state()["hp"] <= 0:
-            banner = font.render("Game Over — press ESC to quit", True, WHITE)
+            banner = font.render("Game Over — press ESC to quit or R to restart", True, WHITE)
             screen.blit(banner, (WIDTH // 2 - banner.get_width() // 2, 10))
 
 
@@ -468,6 +476,9 @@ def main():
 
             if keys[pygame.K_ESCAPE]:
                 running = False
+            if keys[pygame.K_r]:
+                # Restart the game
+                character_original.reset_life()  # reset HP
 
         pygame.display.flip()
 
