@@ -5,8 +5,8 @@ from abc import ABC, abstractmethod
 
 
 # ======== Basic Setup ========
-WIDTH, HEIGHT = 960, 540
-GROUND_Y = HEIGHT - 80
+WIDTH, HEIGHT = 960, 513
+GROUND_Y = HEIGHT - 30
 FPS = 60
 
 WHITE = (245, 245, 245)
@@ -275,28 +275,40 @@ class Shield(TimedDecorator):
 # ======== World Objects (pickups & hazards) ========
 class Pickup:
     def __init__(self, x, kind):
-        self.kind = kind  # 'speed' | 'jump' | 'shield'
-        self.rect = pygame.Rect(x, GROUND_Y - 20, 20, 20)
-        self.color = {"speed": YELLOW, "jump": PURPLE, "shield": (80, 200, 255)}[kind]
+        self.kind = kind
+        size = 80
+
+        self.images = {
+            "speed": pygame.image.load("extras/speed.png").convert_alpha(),
+            "jump": pygame.image.load("extras/jump.png").convert_alpha(),
+            "shield": pygame.image.load("extras/shield.png").convert_alpha()
+        }
+
+        self.image = pygame.transform.scale(self.images[kind], (size, size))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = GROUND_Y - size
 
     def draw(self, surf):
-        pygame.draw.rect(surf, self.color, self.rect, border_radius=6)
+        draw_x = self.rect.centerx - self.image.get_width() // 2
+        draw_y = self.rect.bottom - self.image.get_height()
+
+        surf.blit(self.image, (draw_x, draw_y))
 
 class Hazard:
     def __init__(self, x):
         self.rect = pygame.Rect(x, GROUND_Y - 14, 28, 14)
-        self.color = RED
+
+        self.image = pygame.image.load("extras/obstacle.png").convert_alpha()
+        self.image = pygame.transform.scale(self.image, (60, 60))  
 
     def draw(self, surf):
-        pygame.draw.polygon(
-            surf,
-            self.color,
-            [
-                (self.rect.left, self.rect.bottom),
-                (self.rect.centerx, self.rect.top),
-                (self.rect.right, self.rect.bottom),
-            ],
-        )
+        img_rect = self.image.get_rect()
+
+        # centrar imagen respecto al triángulo
+        img_rect.midbottom = self.rect.midbottom
+
+        surf.blit(self.image, img_rect)
 
 # ======== Helper: unwrap expired decorators ========
 def strip_expired_decorators(character: ICharacter) -> ICharacter:
@@ -379,6 +391,8 @@ def main():
     score = 0
     running = True
 
+    background = pygame.image.load("background/background_2.png").convert()
+    pygame.transform.scale(background, (WIDTH, HEIGHT)) 
     while running:
         dt = clock.tick(FPS) / 1000.0
         for e in pygame.event.get():
@@ -424,8 +438,8 @@ def main():
             hazards.append(Hazard(random.randint(80, WIDTH - 80)))
 
         # ======== RENDER ========
-        screen.fill((25, 28, 35))
-        draw_ground(screen)
+        screen.blit(background, (0, 0))
+        #draw_ground(screen)
 
         for p in pickups:
             p.draw(screen)
@@ -445,10 +459,10 @@ def main():
 
         # Game over banner
         if character.get_state()["hp"] <= 0:
-            banner = font.render("Game Over — press ESC to quit", True, RED)
+            banner = font.render("Game Over — press ESC to quit", True, WHITE)
             screen.blit(banner, (WIDTH // 2 - banner.get_width() // 2, 10))
 
-            # 🚫 congelar mundo (opcional pero recomendado)
+
             pickups.clear()
             hazards.clear()
 
