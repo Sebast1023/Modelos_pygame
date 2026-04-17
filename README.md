@@ -75,7 +75,7 @@ Modelos_pygame/
 ### 1. Clonar el repositorio
 
 ```bash
-git clone <[url-del-repo](https://github.com/Sebast1023/Modelos_pygame.git)>
+git clone https://github.com/Sebast1023/Modelos_pygame.git
 cd Modelos_pygame
 ```
 
