@@ -49,8 +49,8 @@ class ICharacter(ABC):
 # ======== Concrete Character ========
 class SimpleCharacter(ICharacter):
     def __init__(self, x, y):
-        self.w = 48
-        self.h = 64
+        self.w = 55
+        self.h = 76
         self.x = x
         self.y = y
         self.vx = 0
