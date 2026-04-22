@@ -279,6 +279,39 @@ class Shield(TimedDecorator):
         pygame.draw.ellipse(surf, (80, 200, 255), rect, width=3)
         super().draw(surf)
 
+class Lightning(CharacterDecorator):
+    def __init__(self, wrappee: ICharacter):
+        super().__init__(wrappee)
+        self.current_frame = 0
+        self.speed = 0.15  # vel
+        self.frames = []
+        sheet = pygame.image.load("sheets/rayo.png").convert_alpha()
+        frame_width = 64
+        frame_height = 64
+        num_frames = sheet.get_width() // frame_width
+
+        for i in range(num_frames):
+            frame = sheet.subsurface(
+                (i * frame_width, 0, frame_width, frame_height)
+            )
+            self.frames.append(frame)
+
+    def update(self, dt, keys):
+        super().update(dt, keys)
+        self.remaining -= dt
+        self.current_frame += self.speed
+
+        if self.current_frame >= len(self.frames):
+            self.current_frame = 0
+       
+
+    def draw(self, surf):
+        image = self.frames[int(self.current_frame)]
+        screen.blit(image, (self.x, self.y))
+        super().draw(surf)
+
+
+
 # ======== World Objects (pickups & hazards) ========
 class Pickup:
     def __init__(self, x, kind):
