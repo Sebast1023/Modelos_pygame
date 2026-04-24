@@ -25,7 +25,7 @@ Esto se logra envolviendo el personaje con clases decoradoras que añaden compor
 * Aumento de velocidad
 * Salto mejorado
 * Escudo temporal
-
+* Aumento de poder de ataque
 ---
 
 ## Características
@@ -39,9 +39,10 @@ Esto se logra envolviendo el personaje con clases decoradoras que añaden compor
   *  Speed Boost
   *  Jump Boost
   *  Shield
+  *  Attack Boost
 * Sistema de decoradores con duración
 * Fondo personalizado
-* Sprites animados (personaje y obstáculos)
+* Sprites animados (personaje, efectos decoradores y obstáculos)
 
 ---
 
@@ -53,7 +54,7 @@ Esto se logra envolviendo el personaje con clases decoradoras que añaden compor
 | D / →           | Mover derecha   |
 | W / ↑ / Espacio | Saltar          |
 | ESC             | Salir del juego |
-
+| R               | Reiniciar juego |
 ---
 
 ##  Estructura del proyecto
@@ -63,6 +64,7 @@ Modelos_pygame/
 │
 ├── Decorator.py
 ├── ninja/              # Sprites del personaje
+├── sheets/             # Sprites de decoradores
 ├── extras/             # Imagénes (power-ups)
 ├── background/         # Fondo del juego
 └── README.md
@@ -93,7 +95,7 @@ python Decorator.py
 
 ---
 
-## 🔥 Implementación del patrón Decorator
+## Implementación del patrón Decorator
 
 El personaje base (`SimpleCharacter`) implementa la interfaz `ICharacter`.
 
@@ -102,6 +104,7 @@ Los decoradores extienden la funcionalidad:
 * `SpeedBoost`
 * `JumpBoost`
 * `Shield`
+* `AttackBoost`
 
 Cada decorador:
 
@@ -115,6 +118,7 @@ Cada decorador:
 
 * Personaje con animaciones por frames
 * Power-ups con imágenes personalizadas
+* Decoradores con animaciones por frames
 * Fondo escalado al tamaño de la ventana
 
 Se separa:
