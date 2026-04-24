@@ -23,6 +23,7 @@ pygame.display.set_caption("Decorator Runner (pygame)")
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 font = pygame.font.SysFont("consolas", 18)
+font2 = pygame.font.SysFont("consolas", 24, bold=True)
 
 # ======== Character Component Abstraction ========
 class ICharacter(ABC):
@@ -595,8 +596,21 @@ def main():
 
         # Game over banner
         if character.get_state()["hp"] <= 0:
-            banner = font.render("Game Over — press ESC to quit or R to restart", True, WHITE)
-            screen.blit(banner, (WIDTH // 2 - banner.get_width() // 2, 10))
+            banner = font2.render("Game Over — press ESC to quit or R to restart", True, RED)
+            # rect del texto
+            text_rect = banner.get_rect(center=(WIDTH // 2, 50))
+
+            # crear caja con transparencia
+            padding = 20
+            box_rect = text_rect.inflate(padding * 2, padding * 2)
+
+            box = pygame.Surface((box_rect.width, box_rect.height), pygame.SRCALPHA)
+            box.fill((0, 0, 0, 200))  # negro con alpha (0-255)
+
+            # dibujar
+            screen.blit(box, box_rect)
+            screen.blit(banner, text_rect)
+            #screen.blit(banner, (WIDTH // 2 - banner.get_width() // 2, 10))
 
 
             pickups.clear()
@@ -607,6 +621,7 @@ def main():
             if keys[pygame.K_r]:
                 # Restart the game
                 character_original.reset_life()  # reset HP
+                score = 0
 
         pygame.display.flip()
 
