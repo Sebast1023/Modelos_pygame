@@ -357,7 +357,7 @@ class Shield(TimedDecorator):
         super().draw(surf)
                     
 # Decorador que aumenta el poder de ataque del personaje por un tiempo limitado
-class Lightning(TimedDecorator):
+class AttackBoost(TimedDecorator):
     def __init__(self, wrappee: ICharacter,duration=3.0, damage=20.0):
         super().__init__(wrappee, duration)
         self.damage_amount = damage
@@ -404,7 +404,7 @@ class Pickup:
             "speed": pygame.image.load("extras/speed.png").convert_alpha(),
             "jump": pygame.image.load("extras/jump.png").convert_alpha(),
             "shield": pygame.image.load("extras/shield.png").convert_alpha(),
-            "lightning": pygame.image.load("extras/shuriken.png").convert_alpha(),
+            "attack": pygame.image.load("extras/shuriken.png").convert_alpha(),
         }
         img = self.images[kind]
 
@@ -470,7 +470,7 @@ def spawn_level():
     for i in range(8):
         r = random.random()
         if r < 0.35:
-            kind = random.choice(["speed", "jump", "shield"])
+            kind = random.choice(["speed", "jump", "shield","attack"])
             pickups.append(Pickup(x, kind))
         elif r < 0.65:
             hazards.append(Hazard(x))
@@ -498,8 +498,8 @@ def draw_ui(surf, character: ICharacter, active_effects: list[TimedDecorator], s
             label, c = "Jump", PURPLE
         elif isinstance(eff, Shield):
             label, c = "Shield", (80, 200, 255)
-        elif isinstance(eff, Lightning):
-            label, c = "Lightning", (200, 200, 200)
+        elif isinstance(eff, AttackBoost):
+            label, c = "Attack", (200, 200, 200)
         else:
             label, c = eff.__class__.__name__, GRAY
 
@@ -549,8 +549,8 @@ def main():
                     character = add_decorator(character, lambda w: JumpBoost(w, duration=6.0, bonus=240.0))
                 elif p.kind == "shield":
                     character = add_decorator(character, lambda w: Shield(w, duration=8.0))
-                elif p.kind == "lightning":
-                    character = add_decorator(character, lambda w: Lightning(w, duration=4.0, damage=20.0))
+                elif p.kind == "attack":
+                    character = add_decorator(character, lambda w: AttackBoost(w, duration=4.0, damage=20.0))
                 acquired.append(p)
                 score += 10
         for p in acquired:
@@ -569,7 +569,7 @@ def main():
         # Respawn world items occasionally (keep the playground alive)
         if  character.get_state()["hp"] > 0:
             if random.random() < 0.01 and len(pickups) < 7:
-                kind = random.choice(["speed", "jump", "shield", "lightning"])
+                kind = random.choice(["speed", "jump", "shield", "attack"])
                 pickups.append(Pickup(random.randint(80, WIDTH - 80), kind))
             if random.random() < 0.008 and len(hazards) < 6:
                 hazards.append(Hazard(random.randint(80, WIDTH - 80)))
