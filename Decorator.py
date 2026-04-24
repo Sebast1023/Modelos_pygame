@@ -45,6 +45,9 @@ class ICharacter(ABC):
     def damage(self, amount: int): ...
     @abstractmethod
     def get_state(self) -> dict: ...
+    @abstractmethod
+    def get_attack_power(self) -> float: ...
+    
 
 # ======== Concrete Character ========
 class SimpleCharacter(ICharacter):
@@ -60,6 +63,7 @@ class SimpleCharacter(ICharacter):
         # core attributes (decorators can *read* these, but should not mutate directly)
         self._base_speed = 260.0
         self._jump_power = 500.0
+        self._attack_power = 10.0
 
         # gameplay state
         self.hp = 3
@@ -102,6 +106,9 @@ class SimpleCharacter(ICharacter):
 
     def get_jump_power(self):  # may be overridden by decorators
         return self._jump_power
+
+    def get_attack_power(self):  # may be overridden by decorators
+        return self._attack_power
 
     def is_shielded(self):
         return False  # overridden by shield decorator
@@ -225,7 +232,7 @@ class CharacterDecorator(ICharacter):
     def is_shielded(self): return self.wrappee.is_shielded()
     def damage(self, amount: int): self.wrappee.damage(amount)
     def get_state(self): return self.wrappee.get_state()
-
+    def get_attack_power(self): return self.wrappee.get_attack_power()
 # A small utility: timed decorators auto-expire after `duration` seconds
 class TimedDecorator(CharacterDecorator):
     def __init__(self, wrappee: ICharacter, duration: float):
@@ -244,72 +251,146 @@ class SpeedBoost(TimedDecorator):
     def __init__(self, wrappee: ICharacter, duration=6.0, multiplier=1.6):
         super().__init__(wrappee, duration)
         self.multiplier = multiplier
+        self.current_frame = 0
+        self.frame_time = 0
+        self.frame_duration = 0.1
+        self.frames = []
+        sheet = pygame.image.load("sheets/speed.png").convert_alpha()
+        frame_width = 64
+        frame_height = 64
+        num_frames = sheet.get_width() // frame_width
+        row = 4 # la fila del sprite sheet donde están las animaciones
+        for i in range(num_frames):
+            frame = sheet.subsurface(
+                (i * frame_width, row*frame_height, frame_width, frame_height)
+            )
+            self.frames.append(pygame.transform.scale(frame, (128, 128)))
 
     def get_move_speed(self):
         return self.wrappee.get_move_speed() * self.multiplier
 
+    def update(self, dt, keys):
+        super().update(dt, keys)
+        self.frame_time += dt
+        
+        if self.frame_time >= self.frame_duration:
+            self.frame_time = 0
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+       
     def draw(self, surf):
-        # aura
-        rect = self.get_rect().inflate(12, 12)
-        pygame.draw.rect(surf, YELLOW, rect, width=3, border_radius=12)
         super().draw(surf)
+        frame = self.frames[self.current_frame]
+        rect = frame.get_rect(center=self.get_rect().center)        
+        surf.blit(frame, rect)        
 
 class JumpBoost(TimedDecorator):
     def __init__(self, wrappee: ICharacter, duration=6.0, bonus=240.0):
         super().__init__(wrappee, duration)
         self.bonus = bonus
+        self.current_frame = 0
+        self.frame_time = 0
+        self.frame_duration = 0.1
+        self.frames = []
+        sheet = pygame.image.load("sheets/jump.png").convert_alpha()
+        frame_width = 64
+        frame_height = 64
+        num_frames = sheet.get_width() // frame_width
+        row = 1 # la fila del sprite sheet donde están las animaciones
+        for i in range(num_frames):
+            frame = sheet.subsurface(
+                (i * frame_width, row*frame_height, frame_width, frame_height)
+            )
+            self.frames.append(pygame.transform.scale(frame, (128, 128)))
 
     def get_jump_power(self):
         return self.wrappee.get_jump_power() + self.bonus
 
+    def update(self, dt, keys):
+        super().update(dt, keys)
+        self.frame_time += dt
+        
+        if self.frame_time >= self.frame_duration:
+            self.frame_time = 0
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+       
     def draw(self, surf):
-        rect = self.get_rect().inflate(8, 8)
-        pygame.draw.rect(surf, PURPLE, rect, width=3, border_radius=10)
+        frame = self.frames[self.current_frame]
+        rect = frame.get_rect(center=self.get_rect().center)
+        rect.y += 40
+        surf.blit(frame, rect)
         super().draw(surf)
 
 class Shield(TimedDecorator):
     def __init__(self, wrappee: ICharacter, duration=8.0):
         super().__init__(wrappee, duration)
+        self.current_frame = 0
+        self.frame_time = 0
+        self.frame_duration = 0.1
+        self.frames = []
+        sheet = pygame.image.load("sheets/shield.png").convert_alpha()
+        frame_width = 64
+        frame_height = 64
+        num_frames = sheet.get_width() // frame_width
+        row = 2 # la fila del sprite sheet donde están las animaciones
+        for i in range(num_frames):
+            frame = sheet.subsurface(
+                (i * frame_width, row*frame_height, frame_width, frame_height)
+            )
+            self.frames.append(pygame.transform.scale(frame, (150, 150)))
 
     def is_shielded(self):
         return True
 
+    def update(self, dt, keys):
+        super().update(dt, keys)
+        self.frame_time += dt
+        
+        if self.frame_time >= self.frame_duration:
+            self.frame_time = 0
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+       
     def draw(self, surf):
-        rect = self.get_rect().inflate(20, 20)
-        pygame.draw.ellipse(surf, (80, 200, 255), rect, width=3)
+        frame = self.frames[self.current_frame]
+        rect = frame.get_rect(center=self.get_rect().center)
+        surf.blit(frame, rect)
         super().draw(surf)
-
-class Lightning(CharacterDecorator):
-    def __init__(self, wrappee: ICharacter):
-        super().__init__(wrappee)
+                    
+# Decorador que aumenta el poder de ataque del personaje por un tiempo limitado
+class Lightning(TimedDecorator):
+    def __init__(self, wrappee: ICharacter,duration=3.0, damage=20.0):
+        super().__init__(wrappee, duration)
+        self.damage_amount = damage
         self.current_frame = 0
-        self.speed = 0.15  # vel
+        self.frame_time = 0
+        self.frame_duration = 0.1
         self.frames = []
         sheet = pygame.image.load("sheets/rayo.png").convert_alpha()
         frame_width = 64
         frame_height = 64
         num_frames = sheet.get_width() // frame_width
-
+        row = 5 # la fila del sprite sheet donde están las animaciones
         for i in range(num_frames):
             frame = sheet.subsurface(
-                (i * frame_width, 0, frame_width, frame_height)
+                (i * frame_width, row*frame_height, frame_width, frame_height)
             )
-            self.frames.append(frame)
+            self.frames.append(pygame.transform.scale(frame, (160, 160)))
+
+    def get_attack_power(self):
+        return super().get_attack_power() + self.damage_amount
 
     def update(self, dt, keys):
         super().update(dt, keys)
-        self.remaining -= dt
-        self.current_frame += self.speed
-
-        if self.current_frame >= len(self.frames):
-            self.current_frame = 0
+        self.frame_time += dt
+        if self.frame_time >= self.frame_duration:
+            self.frame_time = 0
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
        
 
     def draw(self, surf):
-        image = self.frames[int(self.current_frame)]
-        screen.blit(image, (self.x, self.y))
+        frame = self.frames[self.current_frame]
+        rect = frame.get_rect(center=self.get_rect().center)
+        surf.blit(frame, rect)
         super().draw(surf)
-
 
 
 # ======== World Objects (pickups & hazards) ========
@@ -321,10 +402,20 @@ class Pickup:
         self.images = {
             "speed": pygame.image.load("extras/speed.png").convert_alpha(),
             "jump": pygame.image.load("extras/jump.png").convert_alpha(),
-            "shield": pygame.image.load("extras/shield.png").convert_alpha()
+            "shield": pygame.image.load("extras/shield.png").convert_alpha(),
+            "lightning": pygame.image.load("extras/shuriken.png").convert_alpha(),
         }
+        img = self.images[kind]
 
-        self.image = pygame.transform.scale(self.images[kind], (size, size))
+        #recortar contenido real
+        img = img.subsurface(img.get_bounding_rect())
+
+        #escalar manteniendo proporción
+        w, h = img.get_size()
+        scale_factor = 64 / max(w, h)
+        new_size = (int(w * scale_factor), int(h * scale_factor))
+
+        self.image = pygame.transform.scale(img, new_size)    
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = GROUND_Y - size
@@ -340,7 +431,7 @@ class Hazard:
         self.rect = pygame.Rect(x, GROUND_Y - 14, 28, 14)
 
         self.image = pygame.image.load("extras/obstacle.png").convert_alpha()
-        self.image = pygame.transform.scale(self.image, (60, 60))  
+        self.image = pygame.transform.scale(self.image, (80, 80))  
 
     def draw(self, surf):
         img_rect = self.image.get_rect()
@@ -406,6 +497,8 @@ def draw_ui(surf, character: ICharacter, active_effects: list[TimedDecorator], s
             label, c = "Jump", PURPLE
         elif isinstance(eff, Shield):
             label, c = "Shield", (80, 200, 255)
+        elif isinstance(eff, Lightning):
+            label, c = "Lightning", (200, 200, 200)
         else:
             label, c = eff.__class__.__name__, GRAY
 
@@ -455,6 +548,8 @@ def main():
                     character = add_decorator(character, lambda w: JumpBoost(w, duration=6.0, bonus=240.0))
                 elif p.kind == "shield":
                     character = add_decorator(character, lambda w: Shield(w, duration=8.0))
+                elif p.kind == "lightning":
+                    character = add_decorator(character, lambda w: Lightning(w, duration=4.0, damage=20.0))
                 acquired.append(p)
                 score += 10
         for p in acquired:
@@ -473,7 +568,7 @@ def main():
         # Respawn world items occasionally (keep the playground alive)
         if  character.get_state()["hp"] > 0:
             if random.random() < 0.01 and len(pickups) < 7:
-                kind = random.choice(["speed", "jump", "shield"])
+                kind = random.choice(["speed", "jump", "shield", "lightning"])
                 pickups.append(Pickup(random.randint(80, WIDTH - 80), kind))
             if random.random() < 0.008 and len(hazards) < 6:
                 hazards.append(Hazard(random.randint(80, WIDTH - 80)))
