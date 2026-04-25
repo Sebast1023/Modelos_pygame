@@ -30,19 +30,23 @@ Esto se logra envolviendo el personaje con clases decoradoras que añaden compor
 
 ## Características
 
-* Sistema de movimiento (izquierda, derecha, salto)
-* Animaciones del personaje (idle, run, jump, dead)
-* Sistema de vidas (HP)
-* Obstáculos (hazards)
-* Power-ups:
+### Gameplay
 
-  *  Speed Boost
-  *  Jump Boost
-  *  Shield
-  *  Attack Boost
-* Sistema de decoradores con duración
-* Fondo personalizado
-* Sprites animados (personaje, efectos decoradores y obstáculos)
+Movimiento horizontal con wrap-around (sale por un lado y aparece por el otro)
+Sistema de salto con física (gravedad)
+Sistema de vida (HP)
+Sistema de puntuación (score dinámico)
+Reinicio del juego sin cerrar la app
+
+### Animaciones
+
+Animaciones por sprites:
+idle
+run
+jump
+dead
+Animación independiente para cada decorador
+Animación de muerte no repetitiva (se congela al final)
 
 ---
 
